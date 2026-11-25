@@ -1,0 +1,42 @@
+name: Deploy to GKE
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
+  GKE_REGION: ${{ secrets.GKE_REGION }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Authenticate with Google Cloud
+      uses: google-github-actions/auth@v3
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+    - uses: "google-github-actions/setup-gcloud@v3"
+      with:
+        install_components: "gke-gcloud-auth-plugin"
+
+    - name: Deploy to GKE
+      env:
+        CLOUDSDK_CONTAINER_USE_APPLICATION_DEFAULT_CREDENTIALS: true
+      run: |
+        gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_REGION
+        kubectl create namespace kserve-test --dry-run=client -o yaml | kubectl apply -f -
+        kubectl apply -f - <<EOF
+        apiVersion: v1
+        kind: Secret
+        metadata:
+            name: hf-secret
+            namespace: kserve-test
+        type: Opaque
+        stringData:
+            hf_api_token: ${{ secrets.HF_TOKEN }}
+        EOF
+        kubectl apply -f k8s/InferenceService.yaml

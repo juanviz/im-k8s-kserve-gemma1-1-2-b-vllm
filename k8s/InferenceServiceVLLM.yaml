@@ -1,0 +1,32 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: huggingface-gemma2
+  namespace: kserve-test
+spec:
+  predictor:
+    nodeSelector:
+      cloud.google.com/gke-accelerator: nvidia-l4
+      cloud.google.com/gke-accelerator-count: "1"
+    model:
+      modelFormat:
+        name: huggingface
+      args:
+        - --enable_docs_url=True
+        - --model_name=gemma2
+        - --model_id=google/gemma-2-2b
+      env:
+      - name: HF_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: hf-secret
+            key: hf_api_token
+      resources:
+        limits:
+          cpu: "6"
+          memory: 24Gi
+          nvidia.com/gpu: "1"
+        requests:
+          cpu: "6"
+          memory: 24Gi
+          nvidia.com/gpu: "1"

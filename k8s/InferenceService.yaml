@@ -1,0 +1,33 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: huggingface-gemma2
+  namespace: kserve-test
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: huggingface
+      args:
+        - --model_name=gemma2
+        - --model_id=google/gemma-1.1-2b-it
+        - --backend=huggingface
+        - --dtype=bfloat16
+      env:
+        - name: HF_HOME
+          value: /tmp/hf_cache
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: hf_api_token
+              optional: false
+      resources:
+        requests:
+          cpu: "4"
+          memory: "16Gi"
+          ephemeral-storage: "8Gi"
+        limits:
+          cpu: "4"
+          memory: "16Gi"
+          ephemeral-storage: "8Gi"
